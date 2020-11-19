@@ -1,1 +1,1 @@
-from map2ent.Map2Ent import * 
+from ent2id.Ent2Id import *
