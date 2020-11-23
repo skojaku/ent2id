@@ -28,7 +28,6 @@ class Ent2Id:
         self.ent_list = []
         self.subwords_list = []
         self.vocab_list = []
-        #        self.ent2id = {}
         self.W = None
 
     def init_stop_words(self, languages):
@@ -81,6 +80,7 @@ class Ent2Id:
     def partial_fit(self, ent_name_list, id_list):
 
         # Construct vocabrary
+        self.W = None
         for i, ent_name in enumerate(tqdm(ent_name_list, desc="Generating vocabulary")):
             v = self.generate_ngrams_range(ent_name, self.ns, self.nf)
             self.vocab_list += v
@@ -98,7 +98,7 @@ class Ent2Id:
         self.subword2id = dict([(y, x) for x, y in enumerate(self.vocab_list)])
         self.id2subword = dict([(x, y) for x, y in enumerate(self.vocab_list)])
 
-        uid_list = np.unique(id_list)
+        uid_list = np.unique(self.ent_list)
         self.id2ent = dict(zip(np.arange(len(self.ent_list)), self.ent_list))
         self.nword = len(self.subword2id)
         self.nent = len(self.ent_list)
