@@ -25,9 +25,12 @@ class Ent2Id:
         self.subword_mode = "word"
         self.init_stop_words(languages)
 
+        self.clear()
+
+    def clear(self):
         self.ent_list = []
-        self.subwords_list = []
-        self.vocab_list = []
+        self.subword2id = {}
+        self.link_list = []
         self.W = None
 
     def init_stop_words(self, languages):
@@ -74,6 +77,7 @@ class Ent2Id:
             self.stopwords.add(w)
 
     def fit(self, ent_name_list, id_list):
+        self.clear()
         self.partial_fit(ent_name_list, id_list)
         self.make_ent2id_mapping()
 
@@ -81,22 +85,15 @@ class Ent2Id:
 
         # Construct vocabrary
         self.W = None
+        self.ent_list += list(id_list)
         for i, ent_name in enumerate(tqdm(ent_name_list, desc="Generating vocabulary")):
-            v = self.generate_ngrams_range(ent_name, self.ns, self.nf)
-            self.vocab_list += v
-            self.subwords_list += [v]
-            self.ent_list += [id_list[i]]
-            # self.ent2id[id_list[i]] = self.ent2id.get(id_list[i], []) + [i]
-
+            words = self.generate_ngrams_range(ent_name, self.ns, self.nf)
+            for word in words:
+                self.subword2id[word] = self.subword2id.get(word, len(self.subword2id))
+                self.link_list += [(self.subword2id[word], id_list[i])]
         return self
 
     def make_ent2id_mapping(self):
-
-        self.vocab_list = sorted(set(self.vocab_list))
-
-        # Make mapping function
-        self.subword2id = dict([(y, x) for x, y in enumerate(self.vocab_list)])
-        self.id2subword = dict([(x, y) for x, y in enumerate(self.vocab_list)])
 
         uid_list = np.unique(self.ent_list)
         self.id2ent = dict(zip(np.arange(len(self.ent_list)), self.ent_list))
@@ -104,14 +101,7 @@ class Ent2Id:
         self.nent = len(self.ent_list)
 
         # Make character ngram vs entity matrix
-        link_list = []
-        for i, subwords in enumerate(
-            tqdm(self.subwords_list, desc="Constructing vocabulary matrix")
-        ):
-            for sub in subwords:
-                link_list += [(self.subword2id[sub], i)]
-
-        link_list = np.array(link_list)
+        link_list = np.array(self.link_list)
         self.W = sparse.csr_matrix(
             (np.ones(link_list.shape[0]), (link_list[:, 0], link_list[:, 1])),
             shape=(self.nword, self.nent),
