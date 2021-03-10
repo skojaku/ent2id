@@ -126,11 +126,11 @@ class Ent2Id:
         self.denom = np.sum(self.dc)
 
         def safe_log(v):
-            return np.log(np.maximum(v, 1e-12))
+            return np.log(np.maximum(v, 1e-34))
 
         r, c, v = sparse.find(self.W)
         v = safe_log(v) - (
-            safe_log(self.dr[r]) + safe_log(self.dc[c]) - safe_log(self.denom)
+            safe_log(self.dr[r] / self.denom) + safe_log(self.dc[c])
         )
         v += 1e-3  # offset log(v) is actually zero but it will be treated as nothing. Therefore add a small value as an offset
         self.W = sparse.csr_matrix((v, (r, c)), shape=(self.nword, self.nent),)
