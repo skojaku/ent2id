@@ -26,13 +26,15 @@ class Ent2Id:
     ids, score = model.predict("University of Queensland", max_ret_num = 20)
     """
 
-    def __init__(self, ns=2, nf=5, languages="all"):
+    def __init__(self, ns=2, nf=5, languages="all", subword = "word", aggregate_duplicates = True):
         self.ns = ns
         self.nf = nf
 
-        self.subword_mode = "word"
+        self.subword_mode = subword
         self.init_stop_words(languages)
         self.n_jobs = 10
+        self.aggregate_duplicates = aggregate_duplicates
+
 
         self.clear()
 
@@ -100,7 +102,12 @@ class Ent2Id:
             words = generate_ngrams_range(
                 ent_name, self.ns, self.nf, self.subword_mode, self.stopwords
             )
-            self.ent2id[id_list[i]] = self.ent2id.get(id_list[i], len(self.ent2id))
+            n = len(self.ent2id)
+
+            if self.aggregate_duplicates is False:
+                id_list[i] = id_list[i] + "____%d" % n
+
+            self.ent2id[id_list[i]] = self.ent2id.get(id_list[i], n)
             j = self.ent2id[id_list[i]]
             for word in words:
                 self.subword2id[word] = self.subword2id.get(word, len(self.subword2id))
@@ -170,6 +177,9 @@ class Ent2Id:
             score.data, score.indices, score.indptr, score.shape[0], score.shape[1], self.col_penalty
         )
         entids = [self.id2ent[i] for i in entids]
+        print(entids)
+        if self.aggregate_duplicates is False:
+            entids = [s.split("___")[0] for s in entids]
         return entids, score
 
     def predict_test(self, input_text_list):
