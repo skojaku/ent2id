@@ -134,6 +134,7 @@ class Ent2Id:
         )
         v += 1e-3  # offset log(v) is actually zero but it will be treated as nothing. Therefore add a small value as an offset
         self.W = sparse.csr_matrix((v, (r, c)), shape=(self.nword, self.nent),)
+        self.col_penalty = np.array(self.W.sum(axis=0)).reshape(-1)
 
     def predict(self, input_text_list):
         if self.W is None:
@@ -165,9 +166,8 @@ class Ent2Id:
             shape=(len(word_ids_list), self.nword),
         )
         score = V @ self.W
-
         entids, score = row_argmax(
-            score.data, score.indices, score.indptr, score.shape[0], score.shape[1]
+            score.data, score.indices, score.indptr, score.shape[0], score.shape[1], self.col_penalty
         )
         entids = [self.id2ent[i] for i in entids]
         return entids, score
@@ -227,14 +227,15 @@ def generate_ngrams_range(s, ns, nf, subword_mode, stopwords):
 
 
 @numba.jit(nopython=True, fastmath=True)
-def row_argmax(S_data, S_indices, S_indptr, Nr, Nc):
+def row_argmax(S_data, S_indices, S_indptr, Nr, Nc, penalty):
     hits = np.zeros(Nr)
     s = np.zeros(Nr)
     for i in range(Nr):
         w = S_data[S_indptr[i] : S_indptr[i + 1]]
+        nei = S_indices[S_indptr[i] : S_indptr[i + 1]]
         if len(w) == 0:
             continue
-        ind = np.argmax(w)
+        ind = np.argmax(2 * w - penalty[nei])
         hits[i] = S_indices[S_indptr[i] + ind]
         s[i] = w[ind]
     return hits, s
