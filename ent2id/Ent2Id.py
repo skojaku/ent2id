@@ -244,7 +244,8 @@ def row_argmax(S_data, S_indices, S_indptr, Nr, Nc, penalty):
         nei = S_indices[S_indptr[i] : S_indptr[i + 1]]
         if len(w) == 0:
             continue
-        ind = np.argmax(2 * w - penalty[nei])
+        w = 2 * w - penalty[nei]
+        ind = np.argmax(w)
         hits[i] = S_indices[S_indptr[i] + ind]
         s[i] = w[ind]
     return hits, s
