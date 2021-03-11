@@ -177,7 +177,6 @@ class Ent2Id:
             score.data, score.indices, score.indptr, score.shape[0], score.shape[1], self.col_penalty
         )
         entids = [self.id2ent[i] for i in entids]
-        print(entids)
         if self.aggregate_duplicates is False:
             entids = [s.split("___")[0] for s in entids]
         return entids, score
