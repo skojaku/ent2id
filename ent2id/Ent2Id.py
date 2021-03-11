@@ -172,11 +172,19 @@ class Ent2Id:
             (np.ones_like(word_ids), (query_ids, word_ids)),
             shape=(len(word_ids_list), self.nword),
         )
-        score = V @ self.W
-        entids, score = row_argmax(
-            score.data, score.indices, score.indptr, score.shape[0], score.shape[1], self.col_penalty
+        S = V @ self.W
+        col_ids, score = row_argmax(
+            S.data, S.indices, S.indptr, S.shape[0], S.shape[1], self.col_penalty
         )
-        entids = [self.id2ent[i] for i in entids]
+        col_ids = col_ids.astype(int)
+        entids = [self.id2ent[i] for i in col_ids]
+
+        # normalize the score
+        num_input_words = np.array(V.sum(axis = 1)).reshape(-1)
+        max_scores = self.col_penalty[col_ids]/self.dc[col_ids]
+        score /= num_input_words  # normalized by the number of words
+        score /= max_scores # normalized by the maximum score 
+
         if self.aggregate_duplicates is False:
             entids = [s.split("___")[0] for s in entids]
         return entids, score
@@ -244,8 +252,8 @@ def row_argmax(S_data, S_indices, S_indptr, Nr, Nc, penalty):
         nei = S_indices[S_indptr[i] : S_indptr[i + 1]]
         if len(w) == 0:
             continue
-        w = 2 * w - penalty[nei]
+        w = (2 * w - penalty[nei])
         ind = np.argmax(w)
         hits[i] = S_indices[S_indptr[i] + ind]
-        s[i] = w[ind]
+        s[i] = w[ind] # max score is penalty[ind]
     return hits, s
