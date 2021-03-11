@@ -8,7 +8,7 @@ import ent2id
 
 entity_table_name = "sample-grid.csv"
 
-model = ent2id.Ent2Id()
+model = ent2id.Ent2Id(aggregate_duplicates = False)
 for df in pd.read_csv("sample-grid.csv", chunksize=5000):
     model.partial_fit(df["Name"].values, df["ID"].values)
 
